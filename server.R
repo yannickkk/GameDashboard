@@ -104,6 +104,21 @@ server <- function(input, output, session) {
     return(biometric)
   })
   
+  ## get waddl data
+  waddl <- eventReactive(input$abGetData, {
+    source('db_config.R')
+    eid <- dat()$EncounterID
+    dat <- dat() %>% select(ndowID, Species, CapMtnRange, CapHuntUnit, EncounterID)
+    waddl <- tbl(src, 'lab_Waddl') %>% 
+      collect() %>% 
+      select(EncounterID, specimenlocation, test, result, lvl, level_cat, isolate, case) %>% 
+      filter(EncounterID %in% eid) %>% 
+      left_join(dat, by = c('EncounterID' = 'EncounterID'))
+    waddl$test <- stringr::str_trim(waddl$test)
+    waddl$result <- stringr::str_trim(waddl$result)
+    return(waddl)
+  })
+  
   # ## species vector for selected data
   # vSpecies <- eventReactive(input$abGetData, {
   #   dat() %>% select(Species) %>% extract2(1) %>% unique() %>% sort()
@@ -172,6 +187,28 @@ server <- function(input, output, session) {
   })
   
 ##############
+# HEALTH TAB #
+##############
+  output$plPI3 <- renderPlot({
+    waddl() %>% 
+      filter(test == 'Parainfluenza-3') %>% 
+      group_by(result) %>% 
+      summarize(n = n()) %>% 
+      ggplot(aes(x = result, y = n)) +
+        geom_bar(stat = 'identity', fill = 'royalblue') +
+        theme_bw()
+  })
+  
+  output$plBRSV <- renderPlot({
+    waddl() %>% 
+      filter(test == 'Bovine Resp. Syncytial Virus') %>% 
+      group_by(result) %>% 
+      summarize(n = n()) %>% 
+      ggplot(aes(x = result, y = n)) +
+        geom_bar(stat = 'identity', fill = 'royalblue') +
+        theme_bw()
+  })
+##############
 # SURVEY TAB #
 ##############
   srvyInput <- eventReactive(input$slBiologist, {
@@ -223,13 +260,13 @@ server <- function(input, output, session) {
                 adult = sum(ADULT, na.rm = T),
                 total = sum(TOTAL, na.rm = T),
                 groups = n())
-    datatable(dat, rownames = FALSE, options = list(dom = 't'))
+    datatable(dat, options = list(dom = 't'))
   })
   
   output$tbSurveyGroups <- DT::renderDataTable({
     dat <- mapdat() %>% 
       select(SURVEYID, SURVEYDATE, MALE, FEMALE, JUVENILE, ADULT, TOTAL)
-    datatable(dat, rownames = FALSE, options = list(dom = 't'))
+    datatable(dat, options = list(dom = 't'))
   })
   
   output$plSurvey <- renderPlot({
@@ -312,6 +349,10 @@ server <- function(input, output, session) {
       dplyr::select(ndowID, EncounterID, Biometric, Measurement) %>% 
       spread(Biometric, Measurement)
     tidySum <- xda::numSummary(data.frame(tidySum[, 3:8]))[, c(1, 2, 4, 3, 6, 12:14, 5)]
-    DT::datatable(tidySum, rownames = F, options = list(dom = 't'))
+    DT::datatable(tidySum, options = list(dom = 't'))
+  })
+  
+  output$tbWaddlSum <- DT::renderDataTable({
+    DT::datatable(waddl(), rownames = FALSE, options = list(dom = 't'))
   })
 }

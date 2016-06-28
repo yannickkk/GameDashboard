@@ -8,7 +8,7 @@ dashboardPage(skin = 'green',
   dashboardSidebar(
     sidebarMenu(
       menuItem('Encounter', tabName = 'encounter', icon = icon('binoculars')),
-      menuItem('Health', tabName = 'widgets', icon = icon('stethoscope')),
+      menuItem('Health', tabName = 'health', icon = icon('stethoscope')),
       menuItem('Survey', tabName = 'survey', icon = icon('globe')),
       menuItem('Figures', tabName = 'figures', icon = icon('area-chart')),
       menuItem('Data', tabName = 'data', icon = icon('database'))
@@ -72,6 +72,23 @@ dashboardPage(skin = 'green',
               plotOutput('plSurvey'))
               )
           ),
+    ##############
+    # HEALTH TAB #
+    ##############
+    tabItem(tabName = 'health',
+            tabBox(title = 'PI3', width = 6,
+                   tabPanel(title = 'Bar',
+                            plotOutput('plPI3')),
+                   tabPanel(title = 'Table',
+                            DT::dataTableOutput('tbPI3'))
+                   ),
+            tabBox(title = 'BRSV', width = 6,
+                   tabPanel(title = 'Bar',
+                            plotOutput('plBRSV')),
+                   tabPanel(title = 'Table',
+                            DT::dataTableOutput('tbBRSV'))
+                   )),
+    
     ###############
     # FIGURES TAB #
     ###############
@@ -118,7 +135,10 @@ dashboardPage(skin = 'green',
           tabPanel('Summary', 
                    htmlOutput('htmlBioSummary'),
                    DT::dataTableOutput('tbBioNumSum'))
-                  )
+                  ),
+        tabBox(title = 'WADDL Summary', width = 12,
+          tabPanel('Table',
+                   DT::dataTableOutput('tbWaddlSum')))
            )
   )
 ))
