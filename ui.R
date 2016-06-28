@@ -76,18 +76,30 @@ dashboardPage(skin = 'green',
     # HEALTH TAB #
     ##############
     tabItem(tabName = 'health',
+            tabBox(title = 'M.ovi PCR', width = 6,
+              tabPanel(title = 'Bar',
+                       plotOutput('plPCR')),
+              tabPanel(title = 'Table',
+                       DT::dataTableOutput('tbPCR'))
+            ),
+            tabBox(title = 'M.ovi ELISA', width = 6,
+              tabPanel(title = 'Bar',
+                       plotOutput('plElisa')),
+              tabPanel(title = 'Table',
+                       DT::dataTableOutput('tbElisa'))
+            ),
             tabBox(title = 'PI3', width = 6,
-                   tabPanel(title = 'Bar',
-                            plotOutput('plPI3')),
-                   tabPanel(title = 'Table',
-                            DT::dataTableOutput('tbPI3'))
-                   ),
+              tabPanel(title = 'Bar',
+                       plotOutput('plPI3')),
+              tabPanel(title = 'Table',
+                       DT::dataTableOutput('tbPI3'))
+            ),
             tabBox(title = 'BRSV', width = 6,
-                   tabPanel(title = 'Bar',
-                            plotOutput('plBRSV')),
-                   tabPanel(title = 'Table',
-                            DT::dataTableOutput('tbBRSV'))
-                   )),
+              tabPanel(title = 'Bar',
+                       plotOutput('plBRSV')),
+              tabPanel(title = 'Table',
+                       DT::dataTableOutput('tbBRSV'))
+            )),
     
     ###############
     # FIGURES TAB #

@@ -110,9 +110,9 @@ server <- function(input, output, session) {
     eid <- dat()$EncounterID
     dat <- dat() %>% select(ndowID, Species, CapMtnRange, CapHuntUnit, EncounterID)
     waddl <- tbl(src, 'lab_Waddl') %>% 
-      collect() %>% 
       select(EncounterID, specimenlocation, test, result, lvl, level_cat, isolate, case) %>% 
       filter(EncounterID %in% eid) %>% 
+      collect() %>% 
       left_join(dat, by = c('EncounterID' = 'EncounterID'))
     waddl$test <- stringr::str_trim(waddl$test)
     waddl$result <- stringr::str_trim(waddl$result)
@@ -189,24 +189,53 @@ server <- function(input, output, session) {
 ##############
 # HEALTH TAB #
 ##############
-  output$plPI3 <- renderPlot({
+  ## plots for disease results
+  healthDat <- reactive({
     waddl() %>% 
+      group_by(test, result) %>% 
+      summarize(n = n())
+  })
+  output$plPCR <- renderPlot({
+    healthDat() %>% 
+      filter(test == 'PCR-Mycoplasma ovipneumoniae') %>% 
+      ggplot(aes(x = result, y = n)) +
+      geom_bar(stat = 'identity', fill = 'royalblue') +
+      theme_bw()
+  })
+  output$plElisa <- renderPlot({
+    healthDat() %>% 
+      filter(test == 'M. ovipneumoniae by ELISA') %>% 
+      ggplot(aes(x = result, y = n)) +
+      geom_bar(stat = 'identity', fill = 'royalblue') +
+      theme_bw()
+  })
+  output$plPI3 <- renderPlot({
+    healthDat() %>% 
       filter(test == 'Parainfluenza-3') %>% 
-      group_by(result) %>% 
-      summarize(n = n()) %>% 
       ggplot(aes(x = result, y = n)) +
         geom_bar(stat = 'identity', fill = 'royalblue') +
         theme_bw()
   })
-  
   output$plBRSV <- renderPlot({
-    waddl() %>% 
+    healthDat() %>% 
       filter(test == 'Bovine Resp. Syncytial Virus') %>% 
-      group_by(result) %>% 
-      summarize(n = n()) %>% 
       ggplot(aes(x = result, y = n)) +
-        geom_bar(stat = 'identity', fill = 'royalblue') +
-        theme_bw()
+      geom_bar(stat = 'identity', fill = 'royalblue') +
+      theme_bw()
+  })
+  
+  ## table for disease results
+  output$tbPCR <- DT::renderDataTable({
+    DT::datatable(filter(healthDat(), test == 'PCR-Mycoplasma ovipneumoniae'), options = list(dom = 't'))
+  })
+  output$tbElisa <- DT::renderDataTable({
+    DT::datatable(filter(healthDat(), test == 'M. ovipneumoniae by ELISA'), options = list(dom = 't'))
+  })
+  output$tbPI3 <- DT::renderDataTable({
+    DT::datatable(filter(healthDat(), test == 'Parainfluenza-3'), options = list(dom = 't'))
+  })
+  output$tbBRSV <- DT::renderDataTable({
+    DT::datatable(filter(healthDat(), test == 'Bovine Resp. Syncytial Virus'), options = list(dom = 't'))
   })
 ##############
 # SURVEY TAB #
