@@ -223,6 +223,14 @@ server <- function(input, output, session) {
       geom_bar(stat = 'identity', fill = 'royalblue') +
       theme_bw()
   })
+  output$plBVD <- renderPlot({
+    healthDat() %>% 
+      filter(test == 'Bovine Viral Diarrhea') %>% 
+      ggplot(aes(x = result, y = n)) +
+      geom_bar(stat = 'identity', fill = 'royalblue') +
+      theme_bw()
+  })
+  
   
   ## table for disease results
   output$tbPCR <- DT::renderDataTable({
@@ -236,6 +244,35 @@ server <- function(input, output, session) {
   })
   output$tbBRSV <- DT::renderDataTable({
     DT::datatable(filter(healthDat(), test == 'Bovine Resp. Syncytial Virus'), options = list(dom = 't'))
+  })
+  output$tbBVD <- DT::renderDataTable({
+    DT::datatable(filter(healthDat(), test == 'Bovine Viral Diarrhea'), options = list(dom = 't'))
+  })
+  
+  ## table for health data
+  output$tbHealthData <- DT::renderDataTable({
+    DT::datatable(waddl())
+  })
+  
+  filterWaddl <- eventReactive(input$abFilter, {
+    if (input$txFilterDat == '') {
+      dat <- waddl()
+    } else {
+      filterCrit <- list(input$txFilterDat)
+      dput(unlist(filterCrit))
+      dat <- filter_(waddl(), .dots = filterCrit)
+    }
+    print(dat)
+    return(dat)
+  })
+  output$tbHealthData <- renderDataTable({
+    input$abFilter
+    isolate(dat <- if (input$txFilterDat == '') {
+      waddl()
+    } else {
+      filterWaddl()
+    })
+    datatable(dat, rownames = FALSE)
   })
 ##############
 # SURVEY TAB #
@@ -289,13 +326,13 @@ server <- function(input, output, session) {
                 adult = sum(ADULT, na.rm = T),
                 total = sum(TOTAL, na.rm = T),
                 groups = n())
-    datatable(dat, options = list(dom = 't'))
+    datatable(dat, rownames = FALSE, options = list(dom = 't'))
   })
   
   output$tbSurveyGroups <- DT::renderDataTable({
     dat <- mapdat() %>% 
       select(SURVEYID, SURVEYDATE, MALE, FEMALE, JUVENILE, ADULT, TOTAL)
-    datatable(dat, options = list(dom = 't'))
+    datatable(dat, rownames = FALSE, options = list(dom = 't'))
   })
   
   output$plSurvey <- renderPlot({

@@ -54,6 +54,7 @@ dashboardPage(skin = 'green',
           box(title = 'Suvey Input', width = 3,
               selectInput('slSvyUnit', 'Survey Unit', selected = '', choices = ''),
               selectInput('slSvySpecies', 'Survey Species', selected = '', choices = ''),
+              selectInput('slSvyYear', 'Survey Year', selected = '', choices = ''),
               actionButton('abSurveyData', 'Get Survey Data', width = '100%')
               ),
           box(title = 'Survey Map', width = 9,
@@ -76,30 +77,52 @@ dashboardPage(skin = 'green',
     # HEALTH TAB #
     ##############
     tabItem(tabName = 'health',
-            tabBox(title = 'M.ovi PCR', width = 6,
-              tabPanel(title = 'Bar',
-                       plotOutput('plPCR')),
-              tabPanel(title = 'Table',
-                       DT::dataTableOutput('tbPCR'))
+      fluidRow(width = 12,
+        box(title = 'Input Box', width = 2, height = '464px',
+            selectInput('slHealthColor', 'Color By:', choices = '', selected = '')),
+        tabBox(title = 'M.ovi PCR', width = 5,
+          tabPanel(title = 'Bar',
+                   plotOutput('plPCR')),
+          tabPanel(title = 'Table',
+                   DT::dataTableOutput('tbPCR'))
             ),
-            tabBox(title = 'M.ovi ELISA', width = 6,
-              tabPanel(title = 'Bar',
-                       plotOutput('plElisa')),
-              tabPanel(title = 'Table',
-                       DT::dataTableOutput('tbElisa'))
+          tabBox(title = 'M.ovi ELISA', width = 5,
+            tabPanel(title = 'Bar',
+                     plotOutput('plElisa')),
+            tabPanel(title = 'Table',
+                     DT::dataTableOutput('tbElisa'))
+          )),
+      fluidRow(width = 12,
+        tabBox(title = 'PI3', width = 4,
+          tabPanel(title = 'Bar',
+                   plotOutput('plPI3')),
+          tabPanel(title = 'Table',
+                   DT::dataTableOutput('tbPI3'))
             ),
-            tabBox(title = 'PI3', width = 6,
-              tabPanel(title = 'Bar',
-                       plotOutput('plPI3')),
-              tabPanel(title = 'Table',
-                       DT::dataTableOutput('tbPI3'))
+          tabBox(title = 'BRSV', width = 4,
+            tabPanel(title = 'Bar',
+                     plotOutput('plBRSV')),
+            tabPanel(title = 'Table',
+                     DT::dataTableOutput('tbBRSV'))
             ),
-            tabBox(title = 'BRSV', width = 6,
-              tabPanel(title = 'Bar',
-                       plotOutput('plBRSV')),
-              tabPanel(title = 'Table',
-                       DT::dataTableOutput('tbBRSV'))
+          tabBox(title = 'BVD', width = 4,
+            tabPanel(title = 'Bar',
+                     plotOutput('plBVD')),
+            tabPanel(title = 'Table',
+                     DT::dataTableOutput('tbBVD'))
             )),
+      fluidRow(width = 12,
+        box(title = 'Data', width = 12,
+            textInput('txFilterDat', 'Filter Data', width = '100%'),
+            actionButton('abFilter', 'Filter', width = '200px'),
+            actionButton('abReset', 'Reset', width = '200px'),
+            br(),
+            hr(),
+            column(width = 12,
+                   DT::dataTableOutput('tbHealthData')
+            )
+          ))
+      ),
     
     ###############
     # FIGURES TAB #
