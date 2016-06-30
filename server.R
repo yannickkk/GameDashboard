@@ -13,6 +13,7 @@ library(sp)
 library(RSQLServer)
 library(DBI)
 library(lazyeval)
+library(viridis)
 source('db_config.R')
 source('global.R')
 
@@ -349,8 +350,25 @@ server <- function(input, output, session) {
                 total = sum(TOTAL, na.rm = T),
                 groups = n())
     ggplot(dat, aes(x = YEAR, y = total)) +
-      geom_point(color = colPalette[1]) +
+      geom_point(color = colPalette[1], size = 2) +
       theme_bw()
+  })
+  
+  output$plRatio <- renderPlot({
+    dat <- mapdat() %>% 
+      group_by(YEAR, TYPE) %>% 
+      mutate(sumtotal = cumsum(TOTAL),
+             ratio = cumsum(JUVENILE)/cumsum(ADULT)) %>% 
+      filter(ratio < 1.25 & TYPE == input$slSuveyType)
+    g <- ggplot(dat, aes(x = sumtotal, y = ratio, color = YEAR)) +
+      geom_line(aes(group = YEAR), size = 1, alpha = .8) +
+      #geom_point(size = 3, shape = 20, alpha = .5) +
+      scale_color_viridis() +
+      coord_cartesian(ylim = c(0, 1.25)) +
+      theme_bw() +
+      theme(legend.position = 'bottom',
+            legend.title = element_blank())
+    ggExtra::ggMarginal(g, col = 'grey', margins = 'y', size = 8)
   })
 ###############
 # FIGURES TAB #

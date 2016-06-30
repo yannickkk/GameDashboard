@@ -69,9 +69,14 @@ dashboardPage(skin = 'green',
                      DT::dataTableOutput('tbSurveyGroups'))
               )),
         fluidRow(width = 12,
-          box(title = 'Survey Figure', width = 12,
-              plotOutput('plSurvey'))
-              )
+          tabBox(title = 'Survey Figure', width = 12, height = '600px',
+            tabPanel(title = 'Trend',
+                     plotOutput('plSurvey', height = '550px')),
+            tabPanel(title = 'Ratio',
+                     selectInput('slSuveyType', 'Survey Type', selected = 'Spring',
+                                 choices = c('Annual', 'Post-Season', 'Spring')),
+                     plotOutput('plRatio', height = '550px'))
+              ))
           ),
     ##############
     # HEALTH TAB #

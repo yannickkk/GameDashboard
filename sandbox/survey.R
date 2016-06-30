@@ -165,9 +165,12 @@ ggplot(svy, aes(x = sumtotal, y = ratio)) +
   theme_bw()
 
 g <- ggplot(filter(svy, TYPE == 'Post-Season' & ratio < 1.25), aes(x = sumtotal, y = ratio, color = YEAR)) + 
-  geom_point(size = 1, shape = 21) +
+  #geom_point(size = 1, shape = 21) +
+  geom_line(aes(group = YEAR)) +
   viridis::scale_color_viridis() +
-  theme_bw() +
-  theme(legend.position = 'bottom')
+  theme_void() +
+  theme(legend.position = 'none',
+        legend.direction = 'horizontal',
+        legend.title = element_blank())
 g
 ggExtra::ggMarginal(g, col = 'grey', margins = 'y')
