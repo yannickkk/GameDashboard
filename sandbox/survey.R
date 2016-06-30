@@ -140,3 +140,23 @@ svy_sum <- tst %>%
          )
 
 (n*((fsq+(r^2*tsq))-(2*r*fxt))/(t^2*(n-1)))^0.5
+
+# SURVEY RATIO BY CUMSUM
+tst <- filter(dat, SPECIES == 'MULD' & UNIT == 68)
+
+svy_sum <- tst %>% 
+  group_by(YEAR) %>% 
+  summarise(male = sum(MALE, na.rm = T),
+            female = sum(FEMALE, na.rm = T),
+            juvenile = sum(JUVENILE, na.rm = T),
+            adult = sum(ADULT, na.rm = T))
+
+svy <- tst %>% arrange(SURVEYDATE) %>% 
+  group_by(YEAR) %>% 
+  mutate(sumfawns = cumsum(JUVENILE),
+         ratio = sumfawns/cumsum(ADULT),
+         ratio2 = JUVENILE/ADULT)
+ggplot(svy, aes(x = sumfawns, y = ratio2)) + 
+  geom_point(color = 'royalblue', size = .5) +
+  facet_wrap(~YEAR) +
+  theme_bw()
