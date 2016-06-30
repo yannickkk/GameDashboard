@@ -79,7 +79,8 @@ dashboardPage(skin = 'green',
     tabItem(tabName = 'health',
       fluidRow(width = 12,
         box(title = 'Input Box', width = 2, height = '464px',
-            selectInput('slHealthColor', 'Color By:', choices = '', selected = '')),
+            selectInput('slHealthColor', 'Color By:', selected = 'None',
+                        choices = c('None', 'CapHuntUnit', 'CapMtnRange', 'CapYear', 'Species'))),
         tabBox(title = 'M.ovi PCR', width = 5,
           tabPanel(title = 'Bar',
                    plotOutput('plPCR')),
@@ -110,18 +111,18 @@ dashboardPage(skin = 'green',
                      plotOutput('plBVD')),
             tabPanel(title = 'Table',
                      DT::dataTableOutput('tbBVD'))
-            )),
-      fluidRow(width = 12,
-        box(title = 'Data', width = 12,
-            textInput('txFilterDat', 'Filter Data', width = '100%'),
-            actionButton('abFilter', 'Filter', width = '200px'),
-            actionButton('abReset', 'Reset', width = '200px'),
-            br(),
-            hr(),
-            column(width = 12,
-                   DT::dataTableOutput('tbHealthData')
-            )
-          ))
+            ))
+      # fluidRow(width = 12,
+      #   box(title = 'Data', width = 12,
+      #       textInput('txFilterDat', 'Filter Data', width = '100%'),
+      #       actionButton('abFilter', 'Filter', width = '200px'),
+      #       actionButton('abReset', 'Reset', width = '200px'),
+      #       br(),
+      #       hr(),
+      #       column(width = 12,
+      #              DT::dataTableOutput('tbHealthData')
+      #       )
+      #     ))
       ),
     
     ###############

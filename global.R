@@ -37,6 +37,24 @@ intPlot <- function(dat, xval, yval, colval, type, fillval = colval,
   if (facetval != 'None') {
     gg <- gg + facet_wrap(facetval)
   }
-  
   return(gg)
+}
+
+healthPlot <- function(dat, colby, fltr) {
+  dat <- dat %>% 
+    filter_(~test == fltr)
+  g <- ggplot(dat, aes(x = result, y = n)) +
+    theme_bw() +
+    theme(legend.position = 'bottom')
+  
+  if (colby == 'None') {
+    g <- g + geom_bar(stat = 'identity', fill = 'royalblue') 
+  } else if (colby == 'CapYear') {
+    g <- g + geom_bar(stat = 'identity', aes_string(fill = colby)) +
+      viridis::scale_fill_viridis()
+  } else { 
+    g <- g + geom_bar(stat = 'identity', aes_string(fill = colby)) +
+      ggthemes::scale_fill_gdocs()
+  }
+  return(list(dat, g))
 }

@@ -1,12 +1,13 @@
 library(dplyr)
 library(shiny)
 library(magrittr)
+library(ggplot2)
 dets <- read_csv('data/tbl_survey_details.txt')
 srvy <- read_csv('data/tbl_survey_comp.txt')
 idaho <- filter(dets, UNIT %in% c('061ID', '066ID'))
 dets <- filter(dets, !(UNIT %in% c('061ID', '066ID')))  ## remove idaho
 
-dat <- left_join(srvy, dets[, 1:5], by = ('SURVEYID' = 'SURVEYID'))
+dat <- left_join(srvy, dets[, 1:5], by = c('SURVEYID' = 'SURVEYID'))
 dat$TIME <- strftime(lubridate::mdy_hms(dat$TIME), format = '%H:%M:%S')
 dat$UNIT <- as.numeric(dat$UNIT)
 dat$SURVEYDATE <- as_date(mdy_hms(dat$SURVEYDATE))
@@ -142,7 +143,7 @@ svy_sum <- tst %>%
 (n*((fsq+(r^2*tsq))-(2*r*fxt))/(t^2*(n-1)))^0.5
 
 # SURVEY RATIO BY CUMSUM
-tst <- filter(dat, SPECIES == 'MULD' & UNIT == 68)
+tst <- filter(dat, SPECIES == 'MULD' & UNIT %in% 101:109)
 
 svy_sum <- tst %>% 
   group_by(YEAR) %>% 
@@ -152,11 +153,21 @@ svy_sum <- tst %>%
             adult = sum(ADULT, na.rm = T))
 
 svy <- tst %>% arrange(SURVEYDATE) %>% 
-  group_by(YEAR) %>% 
+  group_by(YEAR, TYPE) %>% 
   mutate(sumfawns = cumsum(JUVENILE),
+         sumtotal = cumsum(TOTAL),
          ratio = sumfawns/cumsum(ADULT),
-         ratio2 = JUVENILE/ADULT)
-ggplot(svy, aes(x = sumfawns, y = ratio2)) + 
+         ratio2 = sumfawns/cumsum(TOTAL))
+
+ggplot(svy, aes(x = sumtotal, y = ratio)) + 
   geom_point(color = 'royalblue', size = .5) +
   facet_wrap(~YEAR) +
   theme_bw()
+
+g <- ggplot(filter(svy, TYPE == 'Post-Season' & ratio < 1.25), aes(x = sumtotal, y = ratio, color = YEAR)) + 
+  geom_point(size = 1, shape = 21) +
+  viridis::scale_color_viridis() +
+  theme_bw() +
+  theme(legend.position = 'bottom')
+g
+ggExtra::ggMarginal(g, col = 'grey', margins = 'y')

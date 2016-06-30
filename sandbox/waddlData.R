@@ -27,14 +27,51 @@ pi3 <- filter(waddl, test == 'Parainfluenza-3')
 
 df <- waddl %>% 
   filter(test == 'Bovine Viral Diarrhea') %>% 
-  group_by(result, CapYear = as.factor(CapYear)) %>% 
+  group_by(result, CapYear = as.factor(CapYear), CapMtnRange, CapHuntUnit) %>% 
   summarise(n = n())
-
-ggplot(df, aes(x = result, y = n, fill = '')) +
+col <- ''
+ggplot(df, aes_string(x = 'result', y = 'n', fill = col)) +
   geom_bar(stat = 'identity', color = NA) +
   ggthemes::scale_fill_gdocs() +
   theme_bw()
 
+col <- 'CapMtnRange'
+healthDat <- waddl %>% 
+  group_by_('test', 'result', col) %>% 
+  summarize(n = n())
+
+###############################################################################
+# HEALTH PLOTS, FOR THE HEALTH TAB
+
+healthPlot <- function(dat, colby, fltr) {
+  dat <- dat %>% 
+    filter_(~test == fltr)
+  g <- ggplot(dat, aes(x = result, y = n)) +
+    theme_bw() +
+    theme(legend.position = 'bottom')
+  
+  if (colby == 'None') {
+    g <- g + geom_bar(stat = 'identity', fill = 'royalblue') 
+  } else if (colby == 'CapYear') {
+    g <- g + geom_bar(stat = 'identity', aes_string(fill = colby)) +
+      viridis::scale_fill_viridis()
+  } else { 
+    g <- g + geom_bar(stat = 'identity', aes_string(fill = colby)) +
+      ggthemes::scale_fill_gdocs()
+  }
+  return(list(dat, g))
+}
+
+col <- 'CapYear'
+healthDat <- waddl %>% 
+  group_by_('test', col, 'result') %>% 
+  summarize(n = n())
+t <- healthPlot(healthDat, col, 'Parainfluenza-3')
+t2 <- healthPlot(healthDat, col, 'Bovine Resp. Syncytial Virus')
+t[[2]]
+View(t[[1]])
+d <- list(t = t, t2 = t2)
+d$t[[2]]
 
 ##########
 ui <- shinyUI(pageWithSidebar(

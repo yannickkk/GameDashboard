@@ -108,7 +108,7 @@ server <- function(input, output, session) {
   waddl <- eventReactive(input$abGetData, {
     source('db_config.R')
     eid <- dat()$EncounterID
-    dat <- dat() %>% select(ndowID, Species, CapMtnRange, CapHuntUnit, EncounterID)
+    dat <- dat() %>% select(ndowID, Species, CapMtnRange, CapHuntUnit, CapDate, EncounterID)
     waddl <- tbl(src, 'lab_Waddl') %>% 
       select(EncounterID, specimenlocation, test, result, lvl, level_cat, isolate, case) %>% 
       filter(EncounterID %in% eid) %>% 
@@ -116,6 +116,7 @@ server <- function(input, output, session) {
       left_join(dat, by = c('EncounterID' = 'EncounterID'))
     waddl$test <- stringr::str_trim(waddl$test)
     waddl$result <- stringr::str_trim(waddl$result)
+    waddl$CapYear <- year(waddl$CapDate)
     return(waddl)
   })
   
@@ -191,89 +192,92 @@ server <- function(input, output, session) {
 ##############
   ## plots for disease results
   healthDat <- reactive({
-    waddl() %>% 
-      group_by(test, result) %>% 
-      summarize(n = n())
+    if (input$slHealthColor == 'None') {
+      dat <- waddl() %>% 
+        group_by(test, result) %>% 
+        summarize(n = n())
+    } else {
+      dat <- waddl() %>% 
+        group_by_('test', input$slHealthColor, 'result') %>% 
+        summarize(n = n())
+    }
+    return(dat)
   })
+  
+  testDat <- reactive({
+    pcr <- healthPlot(healthDat(), input$slHealthColor, 'PCR-Mycoplasma ovipneumoniae')
+    elisa <- healthPlot(healthDat(), input$slHealthColor, 'M. ovipneumoniae by ELISA')
+    pi3 <- healthPlot(healthDat(), input$slHealthColor, 'Parainfluenza-3')
+    brsv <- healthPlot(healthDat(), input$slHealthColor, 'Bovine Resp. Syncytial Virus')
+    bvd <- healthPlot(healthDat(), input$slHealthColor, 'Bovine Viral Diarrhea')
+    #bt <- healthPlot(healthDat(), input$slHealthColor, 'Bluetongue Virus-ELISA')
+    dat <- list(pcr = pcr, elisa = elisa, pi3 = pi3, brsv = brsv, bvd = bvd)
+    return(dat)
+  })
+  
+  ### pcr figure and table
   output$plPCR <- renderPlot({
-    healthDat() %>% 
-      filter(test == 'PCR-Mycoplasma ovipneumoniae') %>% 
-      ggplot(aes(x = result, y = n)) +
-      geom_bar(stat = 'identity', fill = 'royalblue') +
-      theme_bw()
+    testDat()$pcr[[2]]
   })
-  output$plElisa <- renderPlot({
-    healthDat() %>% 
-      filter(test == 'M. ovipneumoniae by ELISA') %>% 
-      ggplot(aes(x = result, y = n)) +
-      geom_bar(stat = 'identity', fill = 'royalblue') +
-      theme_bw()
-  })
-  output$plPI3 <- renderPlot({
-    healthDat() %>% 
-      filter(test == 'Parainfluenza-3') %>% 
-      ggplot(aes(x = result, y = n)) +
-        geom_bar(stat = 'identity', fill = 'royalblue') +
-        theme_bw()
-  })
-  output$plBRSV <- renderPlot({
-    healthDat() %>% 
-      filter(test == 'Bovine Resp. Syncytial Virus') %>% 
-      ggplot(aes(x = result, y = n)) +
-      geom_bar(stat = 'identity', fill = 'royalblue') +
-      theme_bw()
-  })
-  output$plBVD <- renderPlot({
-    healthDat() %>% 
-      filter(test == 'Bovine Viral Diarrhea') %>% 
-      ggplot(aes(x = result, y = n)) +
-      geom_bar(stat = 'identity', fill = 'royalblue') +
-      theme_bw()
-  })
-  
-  
-  ## table for disease results
   output$tbPCR <- DT::renderDataTable({
-    DT::datatable(filter(healthDat(), test == 'PCR-Mycoplasma ovipneumoniae'), options = list(dom = 't'))
+    DT::datatable(testDat()$pcr[[1]], options = list(dom = 't'))
+  })
+  
+  ### elisa figure and table
+  output$plElisa <- renderPlot({
+    testDat()$elisa[[2]]  
   })
   output$tbElisa <- DT::renderDataTable({
-    DT::datatable(filter(healthDat(), test == 'M. ovipneumoniae by ELISA'), options = list(dom = 't'))
+    DT::datatable(testDat()$elisa[[1]], options = list(dom = 't'))
+  })
+  
+  ### pi3 figure and table
+  output$plPI3 <- renderPlot({
+    testDat()$pi3[[2]]
   })
   output$tbPI3 <- DT::renderDataTable({
-    DT::datatable(filter(healthDat(), test == 'Parainfluenza-3'), options = list(dom = 't'))
+    DT::datatable(testDat()$pi3[[1]], options = list(dom = 't'))
+  })
+  
+  ### brsv figure and table
+  output$plBRSV <- renderPlot({
+    testDat()$brsv[[2]]
   })
   output$tbBRSV <- DT::renderDataTable({
-    DT::datatable(filter(healthDat(), test == 'Bovine Resp. Syncytial Virus'), options = list(dom = 't'))
+    DT::datatable(testDat()$brsv[[1]], options = list(dom = 't'))
+  })
+  
+  ### bvd figure and table
+  output$plBVD <- renderPlot({
+    testDat()$bvd[[2]]
   })
   output$tbBVD <- DT::renderDataTable({
-    DT::datatable(filter(healthDat(), test == 'Bovine Viral Diarrhea'), options = list(dom = 't'))
+    DT::datatable(testDat()$bvd[[1]], options = list(dom = 't'))
   })
   
   ## table for health data
-  output$tbHealthData <- DT::renderDataTable({
-    DT::datatable(waddl())
-  })
+  # filterWaddl <- eventReactive(input$abFilter, {
+  #   if (input$txFilterDat == '') {
+  #     dat <- waddl()
+  #   } else {
+  #     filterCrit <- list(input$txFilterDat)
+  #     dput(unlist(filterCrit))
+  #     dat <- filter_(waddl(), .dots = filterCrit)
+  #   }
+  #   print(dat)
+  #   return(dat)
+  # })
+  # output$tbHealthData <- renderDataTable({
+  #   input$abFilter
+  #   isolate(
+  #     dat <- if (input$txFilterDat == '') {
+  #       waddl()
+  #     } else {
+  #       filterWaddl()
+  #     })
+  #   datatable(dat, rownames = FALSE)
+  # })
   
-  filterWaddl <- eventReactive(input$abFilter, {
-    if (input$txFilterDat == '') {
-      dat <- waddl()
-    } else {
-      filterCrit <- list(input$txFilterDat)
-      dput(unlist(filterCrit))
-      dat <- filter_(waddl(), .dots = filterCrit)
-    }
-    print(dat)
-    return(dat)
-  })
-  output$tbHealthData <- renderDataTable({
-    input$abFilter
-    isolate(dat <- if (input$txFilterDat == '') {
-      waddl()
-    } else {
-      filterWaddl()
-    })
-    datatable(dat, rownames = FALSE)
-  })
 ##############
 # SURVEY TAB #
 ##############
