@@ -43,7 +43,9 @@ dashboardPage(skin = 'green',
         ),
         fluidRow(
           box(title = 'Recent Encounters', width = 12, 
-                 DT::dataTableOutput('tbEncounter'))
+            column(width = 12,
+                   DT::dataTableOutput('tbEncounter')
+                   ))
                 )
     ),
     ##############
@@ -75,7 +77,7 @@ dashboardPage(skin = 'green',
             tabPanel(title = 'Ratio',
                      selectInput('slSuveyType', 'Survey Type', selected = 'Spring',
                                  choices = c('Annual', 'Post-Season', 'Spring')),
-                     plotOutput('plRatio', height = '550px'))
+                     plotOutput('plRatio', height = '475px'))
               ))
           ),
     ##############
@@ -134,52 +136,49 @@ dashboardPage(skin = 'green',
     # FIGURES TAB #
     ###############
     tabItem(tabName = 'figures',
-        fluidRow(title = 'Figure Input', width = 12,
-            column(width = 4,
-                   selectInput('slData', 'Data', selected = 'Biometric',
-                               choices = c('Biometric')),
-                   selectInput('slPlotType', 'Type', selected = 'Box', 
-                               choices = c('Bar', 'Box', 'Scatter', 'Density', 'Violin'))
+      fluidRow(
+        box(title = 'Input', width = 3,
+            selectInput('slData', 'Data', selected = 'Biometric',
+                        choices = c('Biometric')),
+            selectInput('slPlotType', 'Type', selected = 'Box', 
+                        choices = c('Bar', 'Box', 'Scatter', 'Density', 'Violin')),
+            selectInput('slXaxis', 'X', selected = 'CapHuntUnit', 
+                        choices = c('Sex', 'Age', 'CapMtnRange', 'CapHuntUnit', 'CapYear',
+                                    'BCS', 'ChestGirth', 'HindLeg', 'Jaw', 'NeckSize', 'Weight')),
+            selectInput('slYaxis', 'Y', selected = 'Weight',
+                        choices = c('Sex', 'Age', 'CapMtnRange', 'CapHuntUnit', 'CapYear',
+                                    'BCS', 'ChestGirth', 'HindLeg', 'Jaw', 'NeckSize', 'Weight')),
+            selectInput('slColor', 'Color', selected = ,
+                        choices = c('None', 'Sex', 'Age', 'CapMtnRange', 'CapHuntUnit')),
+            selectInput('slFacet', 'Facet', selected = '',
+                        choices = c('None', 'Sex', 'Age', 'CapMtnRange', 'CapHuntUnit', 'CapYear')),
+            actionButton('abCreatePlot', 'Create Plot', icon = icon('cogs'))
             ),
-            column(width = 4,
-                   selectInput('slXaxis', 'X', selected = 'CapHuntUnit', 
-                               choices = c('Sex', 'Age', 'CapMtnRange', 'CapHuntUnit', 'CapYear',
-                                           'BCS', 'ChestGirth', 'HindLeg', 'Jaw', 'NeckSize', 'Weight')),
-                   selectInput('slYaxis', 'Y', selected = 'Weight',
-                               choices = c('Sex', 'Age', 'CapMtnRange', 'CapHuntUnit', 'CapYear',
-                                           'BCS', 'ChestGirth', 'HindLeg', 'Jaw', 'NeckSize', 'Weight'))
-            ),
-            column(width = 4,
-                   selectInput('slColor', 'Color', selected = 'Sex',
-                               choices = c('None', 'Sex', 'Age', 'CapMtnRange', 'CapHuntUnit')),
-                   selectInput('slFacet', 'Facet', selected = '',
-                               choices = c('None', 'Sex', 'Age', 'CapMtnRange', 'CapHuntUnit', 'CapYear')),
-                   actionButton('abCreatePlot', 'Create Plot', icon = icon('cogs'))
-            )
-            ),
-        fluidRow(width = 12,
-                 plotOutput('plFigure'))
-        ),
+        box(title = 'Figure', width = 9, height = '600px',
+            plotOutput('plFigure'))
+      )),
     ############
     # DATA TAB #
     ############
     tabItem(tabName = 'data',
-        tabBox(title = 'Encounter Summary', width = 12,
+        fluidRow(width = 12,
+        tabBox(title = 'Encounter Summary', width = 12, height = '600px',
           tabPanel('Table', 
-                   DT::dataTableOutput('tbEncSummary', width = 'auto')),
+                   column(width = 12, DT::dataTableOutput('tbEncSummary', width = 'auto'))),
           tabPanel('Summary', 
                    htmlOutput('htmlEncSummary'))
                   ),
-        tabBox(title = 'Biometric Summary', width = 12,
+        tabBox(title = 'Biometric Summary', width = 12, height = '600px',
           tabPanel('Table', 
-                   DT::dataTableOutput('tbBioSummary')),
+                   column(width = 12, DT::dataTableOutput('tbBioSummary'))),
           tabPanel('Summary', 
                    htmlOutput('htmlBioSummary'),
-                   DT::dataTableOutput('tbBioNumSum'))
+                   column(width = 12, DT::dataTableOutput('tbBioNumSum')))
                   ),
-        tabBox(title = 'WADDL Summary', width = 12,
+        tabBox(title = 'WADDL Summary', width = 12, height = '600px',
           tabPanel('Table',
-                   DT::dataTableOutput('tbWaddlSum')))
-           )
+                   column(width = 12, DT::dataTableOutput('tbWaddlSum'))))
+        )   
+        )
   )
 ))

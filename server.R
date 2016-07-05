@@ -153,8 +153,11 @@ server <- function(input, output, session) {
   
   ## encounter summary table
   output$tbEncounter <- DT::renderDataTable({
-    datatable(dat()[, c('Species', 'ndowID', 'Sex', 'Status', 'CapDate', 'CapMtnRange', 'CapHuntUnit', 
-                        'capE', 'capN', 'CapYear')])
+    DT::datatable(dat()[, c('Species', 'ndowID', 'Sex', 'Status', 'CapDate', 'CapMtnRange', 
+                        'CapHuntUnit', 'capE', 'capN', 'CapYear')],
+              options = list(
+                dom = 'ltip'
+              ))
   })
   
   ## species distribution for selected input
@@ -256,29 +259,6 @@ server <- function(input, output, session) {
     DT::datatable(testDat()$bvd[[1]], options = list(dom = 't'))
   })
   
-  ## table for health data
-  # filterWaddl <- eventReactive(input$abFilter, {
-  #   if (input$txFilterDat == '') {
-  #     dat <- waddl()
-  #   } else {
-  #     filterCrit <- list(input$txFilterDat)
-  #     dput(unlist(filterCrit))
-  #     dat <- filter_(waddl(), .dots = filterCrit)
-  #   }
-  #   print(dat)
-  #   return(dat)
-  # })
-  # output$tbHealthData <- renderDataTable({
-  #   input$abFilter
-  #   isolate(
-  #     dat <- if (input$txFilterDat == '') {
-  #       waddl()
-  #     } else {
-  #       filterWaddl()
-  #     })
-  #   datatable(dat, rownames = FALSE)
-  # })
-  
 ##############
 # SURVEY TAB #
 ##############
@@ -331,13 +311,13 @@ server <- function(input, output, session) {
                 adult = sum(ADULT, na.rm = T),
                 total = sum(TOTAL, na.rm = T),
                 groups = n())
-    datatable(dat, rownames = FALSE, options = list(dom = 't'))
+    DT::datatable(dat, rownames = FALSE, options = list(dom = 'ltip'))
   })
   
   output$tbSurveyGroups <- DT::renderDataTable({
     dat <- mapdat() %>% 
       select(SURVEYID, SURVEYDATE, MALE, FEMALE, JUVENILE, ADULT, TOTAL)
-    datatable(dat, rownames = FALSE, options = list(dom = 't'))
+    DT::datatable(dat, rownames = FALSE, options = list(dom = 'ltip'))
   })
   
   output$plSurvey <- renderPlot({
@@ -405,7 +385,11 @@ server <- function(input, output, session) {
 ############
   
   output$tbEncSummary <- DT::renderDataTable({
-    datatable(head(dat(), 5), rownames = F, options = list(dom = 't'))
+    DT::datatable(dat(), rownames = F, 
+                  options = list(
+                    dom = 'ltip',
+                    scrollX = TRUE)
+                  )
   })
   
   output$htmlEncSummary <- renderUI({
@@ -420,7 +404,11 @@ server <- function(input, output, session) {
   })
   
   output$tbBioSummary <- DT::renderDataTable({
-    datatable(head(biometric(), 25), rownames = F, options = list(dom = 't'))
+    DT::datatable(biometric(), rownames = F, 
+                  options = list(
+                    dom = 'ltip', 
+                    scrollX = TRUE)
+                  )
   })
   
   output$htmlBioSummary <- renderUI({
@@ -441,6 +429,10 @@ server <- function(input, output, session) {
   })
   
   output$tbWaddlSum <- DT::renderDataTable({
-    DT::datatable(waddl(), rownames = FALSE, options = list(dom = 't'))
+    DT::datatable(waddl(), rownames = FALSE, 
+                  options = list(
+                    dom = 'ltip',
+                    scrollX = T)
+                  )
   })
 }
