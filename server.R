@@ -145,6 +145,7 @@ server <- function(input, output, session) {
                                      paste('<b>Species:</b>', dat$Species),
                                      paste('<b>NDOW ID:</b> ', dat$ndowID),
                                      paste('<b>Date:</b> ', dat$CapDate),
+                                     paste('<b>Status:</b> ', dat$Status),
                                      paste('<b>Range:</b> ', dat$CapMtnRange),
                                      paste('<b>Unit:</b> ', dat$CapHuntUnit),
                                      paste('<b>UTM:</b> ', dat$capE, '<b>E</b> ', dat$capN, '<b>N</b>')
@@ -285,7 +286,8 @@ server <- function(input, output, session) {
     dat <- xyConv(mapdat(), xy = c('EASTING_X', 'NORTHING_Y'), 
                   '+init=epsg:26911', '+init=epsg:4326')
     n <- length(levels(as.factor(dat$YEAR))); print(n)
-    pal <- colorFactor(gdocs_pal()(n), dat$YEAR)
+    vColor <- rep(gdocs_pal()(20), n)
+    pal <- colorFactor(vColor, dat$YEAR)
     leaflet() %>% addProviderTiles('Esri.WorldTopoMap') %>% 
       addCircleMarkers(lng = dat$x, lat = dat$y,
                        stroke = FALSE,

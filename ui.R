@@ -59,8 +59,8 @@ dashboardPage(skin = 'green',
               selectInput('slSvyYear', 'Survey Year', selected = '', choices = ''),
               actionButton('abSurveyData', 'Get Survey Data', width = '100%')
               ),
-          box(title = 'Survey Map', width = 9,
-              leafletOutput('mpSurvey')
+          box(title = 'Survey Map', width = 9, height = '600px',
+              leafletOutput('mpSurvey', height = '540px')
               )
           ),
         fluidRow(width = 12,
