@@ -174,3 +174,166 @@ g <- ggplot(filter(svy, TYPE == 'Post-Season' & ratio < 1.25), aes(x = sumtotal,
         legend.title = element_blank())
 g
 ggExtra::ggMarginal(g, col = 'grey', margins = 'y')
+
+## NAs to 0s
+srvy$FEMALE[is.na(srvy$FEMALE)] <- 0
+srvy$JUVENILE[is.na(srvy$JUVENILE)] <- 0
+srvy$MALE[is.na(srvy$MALE)] <- 0
+srvy$ADULT[is.na(srvy$ADULT)] <- 0
+
+## remove rows where no animals are observerd?
+srvy$femjuv <- srvy$JUVENILE + srvy$ADULT
+sub.srvy <- subset(srvy, srvy$femjuv > 0)
+data.frame(sub.srvy)
+
+# function to calculate RSE & CI
+RatioFun<-function (df) {
+  yr <- unique(df$YEAR)
+  ret.df <- data.frame()
+  
+  for (i in seq_along(yr)) {
+    d <- df[df$YEAR == yr[i], ]
+    
+    pf<-sum(d$JUVENILE, na.rm=T)/(sum(d$ADULT, na.rm=T)+sum(d$JUVENILE, na.rm=T))
+    r<-pf/(1-pf)
+    n<-nrow(d)
+    ttl<-sum(d$JUVENILE + d$ADULT, na.rm = T)
+    fsq<-sum(d$JUVENILE^2, na.rm=T)
+    t<-sum(d$ADULT, na.rm=T)
+    tsq<-sum(d$ADULT^2, na.rm=T)
+    fxt<-sum(d$JUVENILE*d$ADULT, na.rm=T)
+    rse<-(n*((fsq+(r^2*tsq))-(2*r*fxt))/(t^2*(n-1)))^0.5
+    r90ci <- rse * 1.645
+    year <- yr[i]
+    
+    dat <- cbind(year, pf, r, n, ttl, fsq, t, tsq, fxt, rse, r90ci)
+    ret.df <- rbind(ret.df, dat)
+    
+  }
+  return(ret.df)
+}
+
+xdplyr <- srvy %>% 
+  mutate(sub = JUVENILE + ADULT) %>% 
+  filter(sub > 0) %>% 
+  group_by(YEAR) %>% 
+  summarize(
+    pf = sum(JUVENILE) / (sum(ADULT) + sum(JUVENILE)),
+    r = pf / (1 - pf),
+    n = n(),
+    ttl = sum(JUVENILE + ADULT),
+    fsq = sum(JUVENILE ** 2),
+    t = sum(ADULT),
+    tsq = sum(ADULT ** 2),
+    fxt = sum(JUVENILE * ADULT)
+  ) %>% 
+  mutate(
+    rse = (n*((fsq+(r^2*tsq))-(2*r*fxt))/(t^2*(n-1)))^0.5,
+    r90ci = rse * 1.645,
+    lwci = r - r90ci,
+    upci = r + r90ci
+  )
+
+xdplyr <- srvy %>% 
+  mutate(sub = JUVENILE + ADULT) %>% filter(sub > 0) %>% 
+  group_by(YEAR)  %>% 
+  summarize(
+    male = sum(as.numeric(MALE)),
+    female = sum(as.numeric(FEMALE)),
+    juvenile = sum(JUVENILE),
+    adult = sum(ADULT),
+    pf = sum(JUVENILE) / (sum(ADULT) + sum(JUVENILE)),
+    r = pf / (1 - pf),
+    n = n(),
+    ttl = sum(JUVENILE + ADULT),
+    fsq = sum(JUVENILE ** 2),
+    t = sum(ADULT),
+    tsq = sum(ADULT ** 2),
+    fxt = sum(JUVENILE * ADULT)
+  ) %>% 
+  mutate(
+    rint = r * 100,
+    rse = (n*((fsq+(r^2*tsq))-(2*r*fxt))/(t^2*(n-1)))^0.5,
+    r90ci = rse * 1.645,
+    lwci = (r - r90ci) * 100,
+    upci = (r + r90ci) * 100
+  )
+
+x <- RatioFun(sub.srvy) %>% arrange(year)
+x$up90 <- (x$r90ci + x$r) * 100
+x$lw90 <- (x$r - x$r90ci) * 100
+xBreaks <- seq(min(xdplyr$YEAR), max(xdplyr$YEAR), 2)
+ggplot(xdplyr, aes(x = YEAR, y = rint)) +
+  geom_point(size = 2, color = 'royalblue') +
+  geom_line(linetype = 'dashed', color = 'royalblue') +
+  geom_errorbar(aes(ymin = lwci, ymax = upci), color = 'royalblue', width = .25) +
+  scale_y_continuous(labels = seq(0, 100, 10), breaks = seq(0, 100, 10), limits = c(0, 100)) +
+  scale_x_continuous(labels = xBreaks, 
+                     breaks = xBreaks) +
+  labs(x = 'Year', y = 'Fawns per 100 Adults', title = 'Area 14 annual fawn ratio') +
+  theme_bw()
+
+## testing with biological year and survey type
+dets <- read_csv('data/tbl_survey_details.txt')
+srvy <- read_csv('data/tbl_survey_comp.txt')
+
+### data munging
+idaho <- filter(dets, UNIT %in% c('061ID', '066ID'))
+dets <- filter(dets, !(UNIT %in% c('061ID', '066ID')))  ## remove idaho
+dat <- left_join(srvy, dets[, 1:5], by = c('SURVEYID' = 'SURVEYID'))
+dat$TIME <- strftime(lubridate::mdy_hms(dat$TIME), format = '%H:%M:%S')
+dat$UNIT <- as.numeric(dat$UNIT)
+dat$SURVEYDATE <- as_date(mdy_hms(dat$SURVEYDATE))
+dat$YEAR <- year(dat$SURVEYDATE)
+dat$MONTH <- month(dat$SURVEYDATE)
+dat$BIOYEAR <- ifelse(dat$MONTH > 5, yes = dat$YEAR, no = dat$YEAR - 1)
+
+
+mapdat <- dat %>%  
+  filter(UNIT %in% 140:149) %>% 
+  select(SURVEYID, SURVEYDATE, TIME, EASTING_X, NORTHING_Y, SPECIES, TOTAL,
+         ADULT, JUVENILE, MALE, FEMALE, UNIT, YEAR, TYPE, BIOYEAR)
+
+surveySum <- mapdat %>% 
+  mutate(sub = JUVENILE + ADULT) %>% filter(sub > 0) %>% 
+  group_by(BIOYEAR, TYPE)  %>% 
+  summarize(
+    male = sum(as.numeric(MALE)),
+    female = sum(as.numeric(FEMALE)),
+    juvenile = sum(JUVENILE),
+    adult = sum(ADULT),
+    pf = sum(JUVENILE) / (sum(ADULT) + sum(JUVENILE)),
+    r = pf / (1 - pf),
+    n = n(),
+    ttl = sum(JUVENILE + ADULT),
+    fsq = sum(JUVENILE ** 2),
+    t = sum(ADULT),
+    tsq = sum(ADULT ** 2),
+    fxt = sum(JUVENILE * ADULT)
+  ) %>% 
+  mutate(
+    rint = r * 100,
+    rse = (n*((fsq+(r^2*tsq))-(2*r*fxt))/(t^2*(n-1)))^0.5,
+    r90ci = rse * 1.645,
+    lwci = (r - r90ci) * 100,
+    upci = (r + r90ci) * 100
+  ) %>% 
+  arrange(BIOYEAR)
+
+xBreaks <- seq(min(surveySum$BIOYEAR) - 1, max(surveySum$BIOYEAR), 2)
+ggplot(surveySum, aes(x = BIOYEAR, y = rint, group = TYPE, color = TYPE)) +
+  geom_point(size = 2) +
+  geom_line(linetype = 'dashed') +
+  geom_errorbar(aes(ymin = lwci, ymax = upci), width = .25) +
+  scale_color_gdocs(name = 'Survey Type') +
+  scale_y_continuous(labels = seq(0, 100, 10), breaks = seq(0, 100, 10), limits = c(0, 100)) +
+  scale_x_continuous(labels = xBreaks, 
+                     breaks = xBreaks) +
+  labs(x = 'Year', y = 'Fawns per 100 Adults', title = 'Area 14 annual fawn ratio') +
+  theme_bw() +
+  theme(legend.position = 'top')
+
+surveySum %>% 
+  select(BIOYEAR, TYPE, rint) %>% 
+  ungroup() %>% 
+  arrange(desc(BIOYEAR), TYPE)

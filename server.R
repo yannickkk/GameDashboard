@@ -19,6 +19,8 @@ source('global.R')
 
 bios <- read_csv('data/bioareas.csv')
 ranges <- read_csv('data/ranges.csv')
+
+## survey data and munging
 srvy_details <- read_csv('data/tbl_survey_details.txt')
 srvy_details <- filter(srvy_details, !(UNIT %in% c('061ID', '066ID')))
 survey <- read_csv('data/tbl_survey_comp.txt')
@@ -27,6 +29,8 @@ survey$TIME <- strftime(mdy_hms(survey$TIME), format = '%H:%M:%S')
 survey$UNIT <- as.numeric(survey$UNIT)
 survey$SURVEYDATE <- as_date(mdy_hms(survey$SURVEYDATE))
 survey$YEAR <- year(survey$SURVEYDATE)
+survey$MONTH <- month(survey$SURVEYDATE)
+survey$BIOYEAR <- ifelse(survey$MONTH > 5, yes = survey$YEAR, no = survey$YEAR - 1)
 
 colPalette <- c("#3366CC", "#DC3912", "#FF9900", "#109618", "#990099", "#0099C6", 
                 "#DD4477", "#66AA00", "#B82E2E", "#316395", "#994499", "#22AA99", 
@@ -274,12 +278,42 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$slBiologist, {
-    updateSelectInput(session, 'slSvyUnit', selected = '', choices = srvyInput()$unit)
+    updateSelectizeInput(session, 'slSvyUnit', selected = '', choices = srvyInput()$unit)
     updateSelectInput(session, 'slSvySpecies', selected = '', choices = srvyInput()$species)
   })
   
   mapdat <- eventReactive(input$abSurveyData, {
-    dat <- srvyInput()$df %>% filter(UNIT == input$slSvyUnit, SPECIES == input$slSvySpecies)
+    dat <- srvyInput()$df %>% 
+      filter(UNIT %in% input$slSvyUnit, SPECIES == input$slSvySpecies)
+    return(dat)
+  })
+  
+  surveySumry <- eventReactive(input$abSurveyData, {
+    dat <- mapdat() %>% 
+      mutate(sub = JUVENILE + ADULT) %>% filter(sub > 0) %>% 
+      group_by(BIOYEAR, TYPE)  %>% 
+      summarize(
+        male = sum(as.numeric(MALE)),
+        female = sum(as.numeric(FEMALE)),
+        juvenile = sum(JUVENILE),
+        adult = sum(ADULT),
+        pf = sum(JUVENILE) / (sum(ADULT) + sum(JUVENILE)),
+        r = pf / (1 - pf),
+        n = n(),
+        ttl = sum(JUVENILE + ADULT),
+        fsq = sum(JUVENILE ** 2),
+        t = sum(ADULT),
+        tsq = sum(ADULT ** 2),
+        fxt = sum(JUVENILE * ADULT)
+      ) %>% 
+      mutate(
+        rint = r * 100,
+        rse = (n*((fsq+(r^2*tsq))-(2*r*fxt))/(t^2*(n-1)))^0.5,
+        r90ci = rse * 1.645,
+        lwci = (r - r90ci) * 100,
+        upci = (r + r90ci) * 100
+      )
+    return(dat)
   })
   
   output$mpSurvey <- renderLeaflet({
@@ -305,14 +339,10 @@ server <- function(input, output, session) {
   })
   
   output$tbSurvey <- DT::renderDataTable({
-    dat <- mapdat() %>% 
-      group_by(YEAR) %>% 
-      summarize(male = sum(MALE, na.rm = T),
-                female = sum(FEMALE, na.rm = T),
-                juvenile = sum(JUVENILE, na.rm = T),
-                adult = sum(ADULT, na.rm = T),
-                total = sum(TOTAL, na.rm = T),
-                groups = n())
+    dat <- surveySumry() %>% 
+      select(BIOYEAR, TYPE, male, female, juvenile, adult, ttl, round(rint, 0), round(lwci, 0), round(upci, 0)) %>% 
+      ungroup %>% 
+      arrange(desc(BIOYEAR), TYPE)
     DT::datatable(dat, rownames = FALSE, options = list(dom = 'ltip'))
   })
   
@@ -323,17 +353,18 @@ server <- function(input, output, session) {
   })
   
   output$plSurvey <- renderPlot({
-    dat <- mapdat() %>% 
-      group_by(YEAR) %>% 
-      summarize(male = sum(MALE, na.rm = T),
-                female = sum(FEMALE, na.rm = T),
-                juvenile = sum(JUVENILE, na.rm = T),
-                adult = sum(ADULT, na.rm = T),
-                total = sum(TOTAL, na.rm = T),
-                groups = n())
-    ggplot(dat, aes(x = YEAR, y = total)) +
-      geom_point(color = colPalette[1], size = 2) +
-      theme_bw()
+    xBreaks <- seq(min(surveySumry()$BIOYEAR) - 1, max(surveySumry()$BIOYEAR) + 1, 2)
+    
+    ggplot(surveySumry(), aes(x = BIOYEAR, y = rint, color = TYPE, group = TYPE)) +
+      geom_point(size = 2) +
+      geom_line(linetype = 'dashed') +
+      geom_errorbar(aes(ymin = lwci, ymax = upci), width = .25) +
+      scale_y_continuous(labels = seq(0, 100, 10), breaks = seq(0, 100, 10), limits = c(0, 100)) +
+      scale_x_continuous(labels = xBreaks, breaks = xBreaks) +
+      scale_color_gdocs(name = 'Survey Type') +
+      labs(x = 'Year', y = 'Fawns per 100 Adults', title = 'Annual Fawn Ratio') +
+      theme_bw() +
+      theme(legend.position = 'top')
   })
   
   output$plRatio <- renderPlot({
