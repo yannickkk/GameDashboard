@@ -34,10 +34,36 @@ leaflet() %>%
                    stroke = F,
                    fillOpacity = .6,
                    radius = sqrt(tst$TOTAL) + 2,
-                   color = pal(tst$YEAR)) %>% 
-  addLegend('bottomright', pal, tst$YEAR)
+                   color = pal(tst$YEAR), group = tst$YEAR) %>% 
+  addLegend('bottomright', pal, tst$YEAR) %>% 
+  addLayersControl(overlayGroups = tst$YEAR)
+
+map <- leaflet() %>% addProviderTiles('Esri.WorldPhysical')
+layer_var <- 'YEAR'
+
+ids <- unique(tst[, layer_var]) %>% sort()
+pal <- gdocs_pal()(3)
+layers <- list()
 
 
+mapPoints <- function(map, df, layer_var) {
+  ids <- unique(df[, layer_var])
+  pal <- gdocs_pal()(3)
+  layers <- list()
+  
+  for(i in seq_along(ids)) {
+    dat <- df %>% filter_(lazyeval::interp(~x == ids[i], .values = list(x = as.name(layer_var))))
+    map <- addCircleMarkers(map, lng = dat$x, lat = dat$y,
+                            group = as.character(ids[i]), color = pal[i],
+                            radius = 3, stroke = FALSE,fillOpacity = .3)
+    layers <- c(layers, as.character(ids[i]))
+  }
+  map <- addLayersControl(map, overlayGroups = layers)
+  return(map)
+}
+
+mapvw <- mapPoints(map, tst, 'YEAR')
+mapvw
 
 
 ## dynamic filter survey data by biologist area of responsibility
